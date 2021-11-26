@@ -821,6 +821,46 @@ def apply_classifier(x, model, img, im0):
 
     return x
 
+def apply_pose_estimator(x, model, img, im0):
+    # Apply a second stage classifier to YOLO outputs
+    # Example model = torchvision.models.__dict__['efficientnet_b0'](pretrained=True).to(device).eval()
+    im0 = [im0] if isinstance(im0, np.ndarray) else im0
+    objects = []
+    for i, d in enumerate(x):  # per image
+        if d is not None and len(d):
+            d = d.clone()
+
+            # Reshape and pad cutouts
+            b = xyxy2xywh(d[:, :4])  # boxes
+            b[:, 2:] = b[:, 2:].max(1)[0].unsqueeze(1)  # rectangle to square
+            b[:, 2:] = b[:, 2:] * 1.3 + 30  # pad
+            d[:, :4] = xywh2xyxy(b).long()
+
+            # Rescale boxes from img_size to im0 size
+            scale_coords(img.shape[2:], d[:, :4], im0[i].shape)
+
+            # Classes
+            pred_cls1 = d[:, 5].long()
+            ims = []
+            for j, a in enumerate(d):  # per item
+                cutout = im0[i][int(a[1]):int(a[3]), int(a[0]):int(a[2])]
+                im = cv2.resize(cutout, (224, 224))  # BGR
+                # cv2.imwrite('example%i.jpg' % j, cutout)
+
+                #im = im[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
+                im = np.ascontiguousarray(im, dtype=np.float32)  # uint8 to float32
+                im /= 255  # 0 - 255 to 0.0 - 1.0
+                ims.append(im)
+                Rmat = model.process_single(im)
+                cls = pred_cls1[j].cpu().detach().numpy()
+                bbox = d[:, :4].cpu().detach().numpy()
+                object = {'Rmat': Rmat, 'id': cls, 'bbox': bbox}
+                objects.append(object)
+
+            #pred_cls2 = model(torch.Tensor(ims).to(d.device)).argmax(1)  # classifier prediction
+            #x[i] = x[i][pred_cls1 == pred_cls2]  # retain matching class detections
+
+    return objects
 
 def increment_path(path, exist_ok=False, sep='', mkdir=False):
     # Increment file or directory path, i.e. runs/exp --> runs/exp{sep}2, runs/exp{sep}3, ... etc.
