@@ -118,7 +118,8 @@ def compute_rotation_matrix_from_ortho6d(poses):
 
 class Inference():
     def __init__(self):
-        detector_path = "/home/hampus/vision/yolov3/runs/train/exp4/weights/best.pt"
+        #detector_path = "/home/hampus/vision/yolov3/runs/train/exp4/weights/best.pt"
+        detector_path = "/home/hampus/vision/yolov3/runs/train/exp5/weights/best.pt"
         #detector_path = "./data/yolo/detector.pt"
         detector_model = "/home/hampus/vision/yolov3"
         encoder_weights = "/home/hampus/vision/AugmentedAutoencoder/multi-pose/data/encoder/obj1-18/encoder.npy"
