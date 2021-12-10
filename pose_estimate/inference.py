@@ -1,43 +1,16 @@
+#! /usr/bin/python3
 import torch
 import numpy as np
+import torch.nn as nn
 import cv2
-from pose_estimate.Encoder import Encoder
-from pose_estimate.Model import Model
+from Encoder import Encoder
+from Model import Model
 
-#import onnxruntime as rt
-
-"""class Pipeline():
-    def __init__(self, encoder, model, device):
-        self.encoder = encoder
-        self.model = model
-        self.device = device
-
-    # Input: x = images as list of numpy arrays
-    # Output: y = pose as 6D representation
-    def process(self, images):
-        # Disable gradients for the encoder
-        with torch.no_grad():fnatest_img_pathme
-            # Convert images to AE codes
-            codes = []
-            for img in images:
-                # Normalize image
-                img_max = np.max(img)
-                img_min = np.min(img)
-                img = (img - img_min)/(img_max - img_min)
-
-                # Run image through encoder
-                img = torch.from_numpy(img).unsqueeze(0).permute(0,3,1,2).to(self.device)
-                #print(img.shape)
-                code = self.encoder(img.float())
-                code = code.detach().cpu().numpy()[0]
-                norm_code = code / np.linalg.norm(code)
-                codes.append(norm_code)
-
-        # Predict poses from the codes
-        batch_codes = torch.tensor(np.stack(codes), device=self.device, dtype=torch.float32)
-        predicted_poses = self.model(batch_codes)
-        return predicted_poses
-"""
+import rospy
+#from cv_bridge import CvBridge, CvBridgeError
+from std_msgs.msg import String
+from sensor_msgs.msg import Image
+from sensor_msgs.msg import PointCloud2
 
 # local copy to avoid relying on utils due to name clash
 def loadCheckpoint(model_path):
@@ -52,29 +25,6 @@ def loadCheckpoint(model_path):
 
     print("Loaded the checkpoint: \n" + model_path)
     return model, num_views
-
-# to be used if we just transmit coordinates, not crops
-"""def extract_square_patch(scene_img, bb_xywh, pad_factor=1.2,resize=(128,128),
-                         interpolation=cv2.INTER_NEAREST,black_borders=False):
-
-        x, y, w, h = np.array(bb_xywh).astype(np.int32)
-        size = int(np.maximum(h, w) * pad_factor)
-
-        left = int(np.maximum(x+w/2-size/2, 0))
-        right = int(np.minimum(x+w/2+size/2, scene_img.shape[1]))
-        top = int(np.maximum(y+h/2-size/2, 0))
-        bottom = int(np.minimum(y+h/2+size/2, scene_img.shape[0]))
-
-        scene_crop = scene_img[top:bottom, left:right].copy()
-
-        if black_borders:
-            scene_crop[:(y-top),:] = 0
-            scene_crop[(y+h-top):,:] = 0
-            scene_crop[:,:(x-left)] = 0
-            scene_crop[:,(x+w-left):] = 0
-
-        scene_crop = cv2.resize(scene_crop, resize, interpolation = interpolation)
-        return scene_crop"""
 
 # batch*n
 def normalize_vector( v):
@@ -118,62 +68,31 @@ def compute_rotation_matrix_from_ortho6d(poses):
 
 class Inference():
     def __init__(self):
-        #detector_path = "/home/hampus/vision/yolov3/runs/train/exp4/weights/best.pt"
-        detector_path = "/home/hampus/vision/yolov3/runs/train/exp5/weights/best.pt"
-        #detector_path = "./data/yolo/detector.pt"
+        detector_weight_path = "/home/hampus/vision/yolov3/runs/train/exp4/weights/best.pt"
         detector_model = "/home/hampus/vision/yolov3"
         encoder_weights = "/home/hampus/vision/AugmentedAutoencoder/multi-pose/data/encoder/obj1-18/encoder.npy"
         model_path = "/home/hampus/vision/AugmentedAutoencoder/multi-pose/output/test/models/model-epoch0.pt"
 
-        """detector = torch.hub.load(detector_model, 'custom', source='local', path=detector_path)
-        #detector = torch.jit.load(detector_path)
-        #detector = torch.hub.load('ultralytics/yolov3', "yolov3", classes=30, force_reload=True, pretrained=False)
-        #detector = torch.hub.load('https://github.com/HampusAstrom/yolov3', 'custom', path='./runs/train/exp4/weights/best.pt')
-        #detector = ct.models.MLModel("/home/hampus/vision/yolov3/runs/train/exp4/weights/best.mlmodel")
-
-        #from models.yolo import Model
-        #yaml_path='models/yolov5m.yaml'
-        #new_weights='weights/yolov5m_resave.pt'
-        #detector = Model(yaml_path).to(device)
-        checkpoint = torch.load(detector_path)#['model']
-        detector.load_state_dict(checkpoint['model'].state_dict())
-        detector = detector.autoshape()
-        detector.names = checkpoint.names
-        #print(detector)"""
-
-        """detector = rt.InferenceSession("/home/hampus/vision/yolov3/runs/train/exp4/weights/best.onnx", None)
-
-        input_name = detector.get_inputs()[0].name
-        print("input name", input_name)
-        input_shape = detector.get_inputs()[0].shape
-        print("input shape", input_shape)
-        input_type = detector.get_inputs()[0].type
-        print("input type", input_type)
-        output_name = detector.get_outputs()[0].name
-        print("output name", output_name)
-        output_shape = detector.get_outputs()[0].shape
-        print("output shape", output_shape)
-        output_type = detector.get_outputs()[0].type
-        print("output type", output_type)"""
-
         device = torch.device("cuda:0")
 
+        # load yolo detector
+        detector = torch.hub.load('/home/hampus/vision/yolov3', 'custom', path="/home/hampus/vision/yolov3/runs/train/exp5/weights/best.pt", source='local')
+
+        # load AE autoencoder
         encoder = Encoder(encoder_weights).to(device)
         encoder.eval()
 
+        # load pose estimator
         model, num_views = loadCheckpoint(model_path)
         model = model.eval() # Set model to eval mode
 
         self.device = device
-        #self.detector = detector
+        self.detector = detector
         self.encoder = encoder
         self.model = model
         self.num_views = num_views
 
-    # Input: x = image as numpy arrays
-    # Output: y = pose as 6D representation
-    # run once for each
-    def process_single(self, image):
+    def process_crop(self, detection):
         # Disable gradients for the encoder
         with torch.no_grad():
             # detect object in scene, get bboxes, crop and pass to AE for each object
@@ -185,6 +104,8 @@ class Inference():
 
             resize=(128,128)
             interpolation=cv2.INTER_NEAREST
+
+            image = detection['im']
 
             img = cv2.resize(image, resize, interpolation = interpolation)
 
@@ -213,15 +134,93 @@ class Inference():
         pose_end = pose_start + 6
         curr_pose = predicted_poses[:,pose_start:pose_end]
         Rs_predicted = compute_rotation_matrix_from_ortho6d(curr_pose)
-        return Rs_predicted.cpu().detach().numpy()
+        return Rs_predicted.cpu().detach().numpy()[0]
 
+    def process_scene(self, image):
+        detections = self.detector(image)
 
+        crops_det = detections.crop(save=False) # set to True to debug crops
+        for crop_det in crops_det:
+            Rs_predicted = self.process_crop(crop_det)
+            crop_det['rot'] = Rs_predicted
+        return crops_det
+
+class Pose_estimation_rosnode():
+    def __init__(self):
+        #self.bridge = CvBridge()
+        self.inference = Inference()
+        self.depth = None
+        self.points = None
+        self.pub = rospy.Publisher('pose_estimation', String, queue_size=10)
+        rospy.init_node('pose_estimation_hampus', anonymous=True)
+        rospy.Subscriber('/realsense/aligned_depth_to_color/image_raw', Image, callback=self.depth_callback)
+        rospy.Subscriber('/realsense/rgb/image_raw', Image, callback=self.run_callback)
+        rospy.Subscriber('/realsense/depth/points', PointCloud2, callback=self.points_callback)
+
+        rospy.spin()
+
+    def mid_depth(self, detection):
+        box = detection['box']
+        tlx = box[0].cpu()
+        tly = box[1].cpu()
+        brx = box[2].cpu()
+        bry = box[3].cpu()
+
+        bbox = [tlx, tly, brx, bry]
+
+        mid_x = (tlx + brx)/2
+        mid_y = (tly + bry)/2
+
+        if self.points == None:
+            return None, bbox
+
+        #T = self.points[mid_x, mid_y]
+        T = 0
+
+        # temp stupid estimate of x and y
+        #x_pix = mid_x - self.image.shape[0]/2
+        #y_pix = mid_y - self.image.shape[1]/2
+
+        return T, bbox
+
+    def depth_callback(self, depth_data):
+        #self.depth = self.bridge.imgmsg_to_cv2(data, 'passthrough')
+        self.depth = np.frombuffer(depth_data.data, dtype=np.uint8).reshape(depth_data.height, depth_data.width, -1)
+
+    def points_callback(self, point_data):
+        #self.points = self.bridge.imgmsg_to_cv2(data, 'passthrough')
+        print("points_callback")
+        self.points = np.frombuffer(point_data.data, dtype=np.uint8).reshape(point_data.height, point_data.width, -1)
+        print(self.points.shape)
+
+    def run_callback(self, image_data):
+        #image = self.bridge.imgmsg_to_cv2(data, 'passthrough')
+        image = np.frombuffer(image_data.data, dtype=np.uint8).reshape(image_data.height, image_data.width, -1)
+
+        pred = inference.process_scene(image)
+
+        rot = []
+        Ts = []
+        for p in pred:
+            T, bbox = self.mid_depth(p)
+
+            rot.append(p['rot'])
+            Ts.append(T)
+
+        rot = np.array(rot)
+        Ts = np.array(Ts)
+        #print(ret)
+        self.pub.publish("{} {}".format(np.array_str(rot), np.array_str(Ts)))
+
+# main method only used for testing
 if __name__ == '__main__':
 
     inference = Inference()
 
-    test_img_path = '/home/hampus/vision/AugmentedAutoencoder/multi-pose/detection_data/images/1.png'
-    bgr = cv2.imread(test_img_path)
+    #test_img_path = '/home/hampus/vision/AugmentedAutoencoder/multi-pose/detection_data/images/1.png'
+    #bgr = cv2.imread(test_img_path)
 
-    pred = inference.process_single(bgr)
-    print(pred)
+    #pred = inference.process_scene(bgr)
+    #print(pred)
+
+    pose_estimation_rosnode = Pose_estimation_rosnode()
