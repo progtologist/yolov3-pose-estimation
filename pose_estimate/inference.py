@@ -68,22 +68,25 @@ def compute_rotation_matrix_from_ortho6d(poses):
 
 class Inference():
     def __init__(self):
-        detector_weight_path = "/home/hampus/vision/yolov3/runs/train/exp4/weights/best.pt"
-        detector_model = "/home/hampus/vision/yolov3"
-        encoder_weights = "/home/hampus/vision/AugmentedAutoencoder/multi-pose/data/encoder/obj1-18/encoder.npy"
-        model_path = "/home/hampus/vision/AugmentedAutoencoder/multi-pose/output/test/models/model-epoch0.pt"
+        #detector_weight_path = "/home/hampus/vision/yolov3/runs/train/exp4/weights/best.pt"
+        detector_weight_path = "./weights/detector.pt"
+        detector_repo = "/home/hampus/vision/yolov3"
+        #encoder_weights = "/home/hampus/vision/AugmentedAutoencoder/multi-pose/data/encoder/obj1-18/encoder.npy"
+        encoder_weights = "./weights/encoder.npy"
+        #model_path = "/home/hampus/vision/AugmentedAutoencoder/multi-pose/output/test/models/model-epoch0.pt"
+        pose_estimator_weights = "./weights/obj19_pose_estimator.pt"
 
         device = torch.device("cuda:0")
 
         # load yolo detector
-        detector = torch.hub.load('/home/hampus/vision/yolov3', 'custom', path="/home/hampus/vision/yolov3/runs/train/exp5/weights/best.pt", source='local')
+        detector = torch.hub.load(detector_repo, 'custom', path=detector_weight_path, source='local')
 
         # load AE autoencoder
         encoder = Encoder(encoder_weights).to(device)
         encoder.eval()
 
         # load pose estimator
-        model, num_views = loadCheckpoint(model_path)
+        model, num_views = loadCheckpoint(pose_estimator_weights)
         model = model.eval() # Set model to eval mode
 
         self.device = device
