@@ -9,8 +9,8 @@ import numpy as np
 import torch
 from torch.cuda import amp
 
-from utils.general import LOGGER, colorstr
-from utils.torch_utils import profile
+from yolov3.utils.general import LOGGER, colorstr
+from yolov3.utils.torch_utils import profile
 
 
 def check_train_batch_size(model, imgsz=640):
@@ -23,7 +23,7 @@ def autobatch(model, imgsz=640, fraction=0.9, batch_size=16):
     # Automatically estimate best batch size to use `fraction` of available CUDA memory
     # Usage:
     #     import torch
-    #     from utils.autobatch import autobatch
+    #     from yolov3.utils.autobatch import autobatch
     #     model = torch.hub.load('ultralytics/yolov3', 'yolov3', autoshape=False)
     #     print(autobatch(model))
 

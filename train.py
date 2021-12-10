@@ -32,23 +32,23 @@ if str(ROOT) not in sys.path:
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
 import val  # for end-of-epoch mAP
-from models.experimental import attempt_load
-from models.yolo import Model
-from utils.autoanchor import check_anchors
-from utils.autobatch import check_train_batch_size
-from utils.callbacks import Callbacks
-from utils.datasets import create_dataloader
-from utils.downloads import attempt_download
-from utils.general import (LOGGER, NCOLS, check_dataset, check_file, check_git_status, check_img_size,
+from yolov3.models.experimental import attempt_load
+from yolov3.models.yolo import Model
+from yolov3.utils.autoanchor import check_anchors
+from yolov3.utils.autobatch import check_train_batch_size
+from yolov3.utils.callbacks import Callbacks
+from yolov3.utils.datasets import create_dataloader
+from yolov3.utils.downloads import attempt_download
+from yolov3.utils.general import (LOGGER, NCOLS, check_dataset, check_file, check_git_status, check_img_size,
                            check_requirements, check_suffix, check_yaml, colorstr, get_latest_run, increment_path,
                            init_seeds, intersect_dicts, labels_to_class_weights, labels_to_image_weights, methods,
                            one_cycle, print_args, print_mutation, strip_optimizer)
-from utils.loggers import Loggers
-from utils.loggers.wandb.wandb_utils import check_wandb_resume
-from utils.loss import ComputeLoss
-from utils.metrics import fitness
-from utils.plots import plot_evolve, plot_labels
-from utils.torch_utils import EarlyStopping, ModelEMA, de_parallel, select_device, torch_distributed_zero_first
+from yolov3.utils.loggers import Loggers
+from yolov3.utils.loggers.wandb.wandb_utils import check_wandb_resume
+from yolov3.utils.loss import ComputeLoss
+from yolov3.utils.metrics import fitness
+from yolov3.utils.plots import plot_evolve, plot_labels
+from yolov3.utils.torch_utils import EarlyStopping, ModelEMA, de_parallel, select_device, torch_distributed_zero_first
 
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
