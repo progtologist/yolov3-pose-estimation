@@ -174,7 +174,7 @@ class Pose_estimation_rosnode():
         mid_x = (tlx + brx)/2
         mid_y = (tly + bry)/2
 
-        if self.points == None:
+        if self.points is None:
             return None, bbox
 
         #T = self.points[mid_x, mid_y]
