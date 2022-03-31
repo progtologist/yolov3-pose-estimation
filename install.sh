@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Note: Dockerfile achieves the same thing without this script
 echo "Fetching weights..."
 mkdir -p weights
 wget --no-clobber https://github.com/robberthofmanfm/yolo/releases/download/v0.0.1/obj19_detector.pt -o weights/detector.pt
