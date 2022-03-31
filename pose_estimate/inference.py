@@ -70,7 +70,7 @@ class Inference():
     def __init__(self):
         #detector_weight_path = "/home/hampus/vision/yolov3/runs/train/exp4/weights/best.pt"
         detector_weight_path = "./weights/detector.pt"
-        detector_repo = "/home/hampus/vision/yolov3"
+        detector_repo = "./"
         #encoder_weights = "/home/hampus/vision/AugmentedAutoencoder/multi-pose/data/encoder/obj1-18/encoder.npy"
         encoder_weights = "./weights/encoder.npy"
         #model_path = "/home/hampus/vision/AugmentedAutoencoder/multi-pose/output/test/models/model-epoch0.pt"
@@ -156,9 +156,9 @@ class Pose_estimation_rosnode():
         self.points = None
         self.pub = rospy.Publisher('pose_estimation', String, queue_size=10)
         rospy.init_node('pose_estimation_hampus', anonymous=True)
-        rospy.Subscriber('/realsense/aligned_depth_to_color/image_raw', Image, callback=self.depth_callback)
-        rospy.Subscriber('/realsense/rgb/image_raw', Image, callback=self.run_callback)
-        rospy.Subscriber('/realsense/depth/points', PointCloud2, callback=self.points_callback)
+        rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image, callback=self.depth_callback)
+        rospy.Subscriber('/camera/color/image_raw', Image, callback=self.run_callback)
+        rospy.Subscriber('/camera/depth/color/points', PointCloud2, callback=self.points_callback)
 
         rospy.spin()
 
@@ -174,7 +174,7 @@ class Pose_estimation_rosnode():
         mid_x = (tlx + brx)/2
         mid_y = (tly + bry)/2
 
-        if self.points == None:
+        if self.points is None:
             return None, bbox
 
         #T = self.points[mid_x, mid_y]
@@ -187,16 +187,19 @@ class Pose_estimation_rosnode():
         return T, bbox
 
     def depth_callback(self, depth_data):
+        rospy.loginfo("depth_callback called")
         #self.depth = self.bridge.imgmsg_to_cv2(data, 'passthrough')
         self.depth = np.frombuffer(depth_data.data, dtype=np.uint8).reshape(depth_data.height, depth_data.width, -1)
 
     def points_callback(self, point_data):
+        rospy.loginfo("points_callback called")
         #self.points = self.bridge.imgmsg_to_cv2(data, 'passthrough')
         print("points_callback")
         self.points = np.frombuffer(point_data.data, dtype=np.uint8).reshape(point_data.height, point_data.width, -1)
         print(self.points.shape)
 
     def run_callback(self, image_data):
+        rospy.loginfo("run_callback called")
         #image = self.bridge.imgmsg_to_cv2(data, 'passthrough')
         image = np.frombuffer(image_data.data, dtype=np.uint8).reshape(image_data.height, image_data.width, -1)
 
@@ -213,6 +216,7 @@ class Pose_estimation_rosnode():
         rot = np.array(rot)
         Ts = np.array(Ts)
         #print(ret)
+        rospy.loginfo("run_callback publishing: {} {}".format(np.array_str(rot), np.array_str(Ts)))
         self.pub.publish("{} {}".format(np.array_str(rot), np.array_str(Ts)))
 
 # main method only used for testing
