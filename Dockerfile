@@ -45,7 +45,13 @@ RUN apt update
 RUN apt install -y ros-noetic-ros-base
 # pip install rospkg: probably not the best solution, but seems to work:
 RUN pip install rospkg
-RUN source /opt/ros/noetic/setup.bash
+# installing tf dependency here. Also not the best idea. (package.xml doesn't exist here)
+RUN apt install -y ros-noetic-tf
+
+#entrypoint is always run at container startup 
+COPY entrypoint.sh /root/
+ENTRYPOINT ["/root/entrypoint.sh"]
+#CMD ["python" "./pose_estimate/inference.py"]
 
 # Usage Examples -------------------------------------------------------------------------------------------------------
 
