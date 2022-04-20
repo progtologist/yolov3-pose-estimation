@@ -11,6 +11,9 @@ import rospy
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import PointCloud2
+import tf
+from geometry_msgs.msg import Pose
+
 
 # local copy to avoid relying on utils due to name clash
 def loadCheckpoint(model_path):
@@ -219,10 +222,29 @@ class Pose_estimation_rosnode():
         rospy.loginfo("run_callback publishing: {} {}".format(np.array_str(rot), np.array_str(Ts)))
         self.pub.publish("{} {}".format(np.array_str(rot), np.array_str(Ts)))
 
+def realsense_to_world_callback(msg):
+    # called when a new message arrives at /pose_estimation
+    # then publishes at /pose_estimation_world_frame
+    # depends on a tftree where realsense_link exists and realsense_rgb_frame exists
+    # TODO: this stuff does not work at all yet, it's just a copy from a ros tutorial
+    broadcaster = tf.TransformBroadcaster()  # TODO should not be in the callback. reuse same bc
+    broadcaster.sendTransform((msg.position.x, msg.position.y, msg.position.z),
+                     tf.transformations.quaternion_from_euler(0, 0, msg.theta),
+                     rospy.Time.now(),
+                     "object","camera")
+    # The syntax is: 
+    # broadcaster.sendTransform(translation, rotation, timestamp, to_frame, from_frame)
+    # You publish the transformation from the last arg to the one to last arg
+    # alternatively:
+    broadcaster.sendTransform((msg.position.x, msg.position.y, msg.position.z),
+            (msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w),
+            rospy.Time.now(), "object", "camera")
+
+
 # main method only used for testing
 if __name__ == '__main__':
 
-    inference = Inference()
+    #inference = Inference()
 
     #test_img_path = '/home/hampus/vision/AugmentedAutoencoder/multi-pose/detection_data/images/1.png'
     #bgr = cv2.imread(test_img_path)
