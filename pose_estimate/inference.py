@@ -11,6 +11,7 @@ import rospy
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import PointCloud2
+from sensor_msgs import point_cloud2
 import tf
 from geometry_msgs.msg import Pose
 
@@ -156,7 +157,7 @@ class Pose_estimation_rosnode():
         #self.bridge = CvBridge()
         self.inference = Inference()
         self.depth = None
-        self.points = None
+        self.points_data = None
         self.pub = rospy.Publisher('pose_estimation', String, queue_size=10)
         rospy.init_node('pose_estimation_hampus', anonymous=True)
         rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image, callback=self.depth_callback)
@@ -174,18 +175,14 @@ class Pose_estimation_rosnode():
 
         bbox = [tlx, tly, brx, bry]
 
-        mid_x = (tlx + brx)/2
-        mid_y = (tly + bry)/2
+        mid_x = int((tlx + brx)/2)
+        mid_y = int((tly + bry)/2)
 
-        if self.points is None:
+        if self.points_data is None:
             return None, bbox
 
-        #T = self.points[mid_x, mid_y]
-        T = 0
-
-        # temp stupid estimate of x and y
-        #x_pix = mid_x - self.image.shape[0]/2
-        #y_pix = mid_y - self.image.shape[1]/2
+        temp = point_cloud2.read_points(self.points_data, field_names=['x', 'y', 'z'], skip_nans=True, uvs=[(mid_x, mid_y)])
+        T = list(list(temp)[0])
 
         return T, bbox
 
@@ -196,17 +193,14 @@ class Pose_estimation_rosnode():
 
     def points_callback(self, point_data):
         rospy.loginfo("points_callback called")
-        #self.points = self.bridge.imgmsg_to_cv2(data, 'passthrough')
-        print("points_callback")
-        self.points = np.frombuffer(point_data.data, dtype=np.uint8).reshape(point_data.height, point_data.width, -1)
-        print(self.points.shape)
+        self.points_data = point_data
 
     def run_callback(self, image_data):
         rospy.loginfo("run_callback called")
         #image = self.bridge.imgmsg_to_cv2(data, 'passthrough')
         image = np.frombuffer(image_data.data, dtype=np.uint8).reshape(image_data.height, image_data.width, -1)
 
-        pred = inference.process_scene(image)
+        pred = self.inference.process_scene(image)
 
         rot = []
         Ts = []
@@ -232,7 +226,7 @@ def realsense_to_world_callback(msg):
                      tf.transformations.quaternion_from_euler(0, 0, msg.theta),
                      rospy.Time.now(),
                      "object","camera")
-    # The syntax is: 
+    # The syntax is:
     # broadcaster.sendTransform(translation, rotation, timestamp, to_frame, from_frame)
     # You publish the transformation from the last arg to the one to last arg
     # alternatively:
