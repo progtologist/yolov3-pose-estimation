@@ -18,10 +18,8 @@ RUN pip install --no-cache torch==1.10.0+cu113 torchvision==0.11.1+cu113 -f http
 RUN mkdir -p /usr/src/yolov3
 WORKDIR /usr/src/yolov3
 
-# Copy contents
-COPY . /usr/src/yolov3
-
 # Requirements
+COPY ./requirements.txt /usr/src/yolov3/requirements.txt
 RUN pip install --no-cache -r requirements.txt
 
 # Downloads to user config dir
@@ -48,7 +46,10 @@ RUN pip install rospkg
 # installing tf dependency here. Also not the best idea. (package.xml doesn't exist here)
 RUN apt install -y ros-noetic-tf
 
-#entrypoint is always run at container startup 
+# Copy contents
+COPY . /usr/src/yolov3
+
+#entrypoint is always run at container startup
 COPY entrypoint.sh /root/
 ENTRYPOINT ["/root/entrypoint.sh"]
 #CMD ["python" "./pose_estimate/inference.py"]
