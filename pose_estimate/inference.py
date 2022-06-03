@@ -12,6 +12,7 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs import point_cloud2
+from geometry_msgs.msg import PoseArray
 import tf
 from geometry_msgs.msg import Pose
 
@@ -158,7 +159,8 @@ class Pose_estimation_rosnode():
         self.inference = Inference()
         self.depth = None
         self.points_data = None
-        self.pub = rospy.Publisher('pose_estimation', String, queue_size=10)
+        self.pub = rospy.Publisher('pose_estimation', PoseArray, queue_size=10)
+        self.debug_counter = 0
         rospy.init_node('pose_estimation_hampus', anonymous=True)
         rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image, callback=self.depth_callback)
         rospy.Subscriber('/camera/color/image_raw', Image, callback=self.run_callback)
@@ -202,19 +204,47 @@ class Pose_estimation_rosnode():
 
         pred = self.inference.process_scene(image)
 
-        rot = []
-        Ts = []
-        for p in pred:
+        msg = PoseArray()
+        msg.header = image_data.header # this might be wrong, but lets try
+        for i, p in enumerate(pred):
             T, bbox = self.mid_depth(p)
 
-            rot.append(p['rot'])
-            Ts.append(T)
+            if T[2] < 10:
+                print(T)
 
-        rot = np.array(rot)
-        Ts = np.array(Ts)
-        #print(ret)
-        rospy.loginfo("run_callback publishing: {} {}".format(np.array_str(rot), np.array_str(Ts)))
-        self.pub.publish("{} {}".format(np.array_str(rot), np.array_str(Ts)))
+            pose = Pose()
+            pose.position.x = T[0]
+            pose.position.y = T[1]
+            pose.position.z = T[2]
+
+            mat = rtToMat(p['rot'], T)
+            print(mat)
+            qt = tf.transformations.quaternion_from_matrix(mat)
+            pose.orientation.x = qt[0]
+            pose.orientation.y = qt[1]
+            pose.orientation.z = qt[2]
+            pose.orientation.w = qt[3]
+            msg.poses.append(pose)
+
+        # save image and estimates every x images with detections when calibrating
+        debug = False
+        save_interval = 20
+        if debug and len(pred)>0:
+            if self.debug_counter % save_interval == 0:
+                #save image and R, T and bboxes
+
+                ind = self.debug_counter/save_interval
+                with open("/shared-folder/RnT_{}.txt".format(ind), "w") as f:
+                    f.write("{} {}".format(np.array_str(rot), np.array_str(Ts)))
+
+                cv2.imwrite("/shared-folder/rgb_image_{}.png".format(ind), image)
+
+            self.debug_counter += 1
+
+        #rospy.loginfo("run_callback publishing: {} {}".format(np.array_str(rot), np.array_str(Ts)))
+        #self.pub.publish("{} {}".format(np.array_str(rot), np.array_str(Ts)))
+        rospy.loginfo("run_callback publishing: {} ".format(msg))
+        self.pub.publish(msg)
 
 def realsense_to_world_callback(msg):
     # called when a new message arrives at /pose_estimation
