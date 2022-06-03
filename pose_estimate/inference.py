@@ -71,6 +71,33 @@ def compute_rotation_matrix_from_ortho6d(poses):
     matrix = torch.cat((x,y,z), 2) #batch*3*3
     return matrix
 
+def rtToMat(rot, t):
+    mat = np.concatenate((rot, np.array(t).reshape(3,1)), axis=1)
+    mat = np.concatenate((mat, [[0, 0, 0, 1]]), axis=0)
+    return mat
+
+def conv_R_opengl2pytorch_np(R):
+    # Convert R matrix from opengl to pytorch format
+    xy_flip = np.eye(3, dtype=np.float)
+    xy_flip[0,0] = -1.0
+    xy_flip[1,1] = -1.0
+    R_pytorch = np.transpose(R)
+    R_pytorch = np.dot(R_pytorch,xy_flip)
+
+    # Convert to tensors
+    #R = torch.from_numpy(R_conv)
+    return R_pytorch
+
+def conv_R_pytorch2opengl_np(R):
+    # Convert R matrix from pytorch to opengl format
+    xy_flip = np.eye(3, dtype=np.float)
+    xy_flip[0,0] = -1.0
+    xy_flip[1,1] = -1.0
+    R_opengl = np.dot(R,xy_flip)
+    R_opengl = np.transpose(R_opengl)
+
+    return R_opengl
+
 class Inference():
     def __init__(self):
         #detector_weight_path = "/home/hampus/vision/yolov3/runs/train/exp4/weights/best.pt"
@@ -85,6 +112,7 @@ class Inference():
 
         # load yolo detector
         detector = torch.hub.load(detector_repo, 'custom', path=detector_weight_path, source='local')
+        detector.conf = 0.20 # change confidence threshold if necessary
 
         # load AE autoencoder
         encoder = Encoder(encoder_weights).to(device)
@@ -150,6 +178,9 @@ class Inference():
         crops_det = detections.crop(save=False) # set to True to debug crops
         for crop_det in crops_det:
             Rs_predicted = self.process_crop(crop_det)
+            #cheking if conversion is needed TODO: write correct comment when fixed
+            Rs_predicted = conv_R_pytorch2opengl_np(Rs_predicted)
+            #Rs_predicted = conv_R_opengl2pytorch_np(Rs_predicted)
             crop_det['rot'] = Rs_predicted
         return crops_det
 
