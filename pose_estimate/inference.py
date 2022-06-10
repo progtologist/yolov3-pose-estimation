@@ -106,7 +106,7 @@ class Inference():
         #encoder_weights = "/home/hampus/vision/AugmentedAutoencoder/multi-pose/data/encoder/obj1-18/encoder.npy"
         encoder_weights = "./weights/encoder.npy"
         #model_path = "/home/hampus/vision/AugmentedAutoencoder/multi-pose/output/test/models/model-epoch0.pt"
-        pose_estimator_weights = "./weights/obj19_pose_estimator.pt"
+        pose_estimator_weights = "./weights/pose_estimator.pt"
 
         device = torch.device("cuda:0")
 
