@@ -9,8 +9,8 @@ def notebook_init():
     print('Checking setup...')
     from IPython import display  # to display images and clear console output
 
-    from yolov3.utils.general import emojis
-    from yolov3.utils.torch_utils import select_device  # imports
+    from utils.general import emojis
+    from utils.torch_utils import select_device  # imports
 
     display.clear_output()
     select_device(newline=False)

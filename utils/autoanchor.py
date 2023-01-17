@@ -10,7 +10,7 @@ import torch
 import yaml
 from tqdm import tqdm
 
-from yolov3.utils.general import LOGGER, colorstr, emojis
+from utils.general import LOGGER, colorstr, emojis
 
 PREFIX = colorstr('AutoAnchor: ')
 
@@ -77,7 +77,7 @@ def kmean_anchors(dataset='./data/coco128.yaml', n=9, img_size=640, thr=4.0, gen
             k: kmeans evolved anchors
 
         Usage:
-            from yolov3.utils.autoanchor import *; _ = kmean_anchors()
+            from utils.autoanchor import *; _ = kmean_anchors()
     """
     from scipy.cluster.vq import kmeans
 
@@ -109,7 +109,7 @@ def kmean_anchors(dataset='./data/coco128.yaml', n=9, img_size=640, thr=4.0, gen
     if isinstance(dataset, str):  # *.yaml file
         with open(dataset, errors='ignore') as f:
             data_dict = yaml.safe_load(f)  # model dict
-        from yolov3.utils.datasets import LoadImagesAndLabels
+        from utils.datasets import LoadImagesAndLabels
         dataset = LoadImagesAndLabels(data_dict['train'], augment=True, rect=True)
 
     # Get label wh

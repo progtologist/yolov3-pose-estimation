@@ -38,14 +38,14 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
-from yolov3.models.common import Conv
-from yolov3.models.experimental import attempt_load
-from yolov3.models.yolo import Detect
-from yolov3.utils.activations import SiLU
-from yolov3.utils.datasets import LoadImages
-from yolov3.utils.general import (LOGGER, check_dataset, check_img_size, check_requirements, colorstr, file_size, print_args,
+from models.common import Conv
+from models.experimental import attempt_load
+from models.yolo import Detect
+from utils.activations import SiLU
+from utils.datasets import LoadImages
+from utils.general import (LOGGER, check_dataset, check_img_size, check_requirements, colorstr, file_size, print_args,
                            url2file)
-from yolov3.utils.torch_utils import select_device
+from utils.torch_utils import select_device
 
 
 def export_torchscript(model, im, file, optimize, prefix=colorstr('TorchScript:')):
@@ -139,7 +139,7 @@ def export_saved_model(model, im, file, dynamic,
         import tensorflow as tf
         from tensorflow import keras
 
-        from yolov3.models.tf import TFDetect, TFModel
+        from models.tf import TFDetect, TFModel
 
         LOGGER.info(f'\n{prefix} starting export with tensorflow {tf.__version__}...')
         f = str(file).replace('.pt', '_saved_model')
@@ -187,7 +187,7 @@ def export_tflite(keras_model, im, file, int8, data, ncalib, prefix=colorstr('Te
     try:
         import tensorflow as tf
 
-        from yolov3.models.tf import representative_dataset_gen
+        from models.tf import representative_dataset_gen
 
         LOGGER.info(f'\n{prefix} starting export with tensorflow {tf.__version__}...')
         batch_size, ch, *imgsz = list(im.shape)  # BCHW
