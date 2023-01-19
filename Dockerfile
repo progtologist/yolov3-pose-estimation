@@ -27,7 +27,7 @@ ADD https://ultralytics.com/assets/Arial.ttf /root/.config/Ultralytics/
 
 # Set environment variables
 # ENV HOME=/usr/src/yolov3
-ENV PYTHONPATH=$PYTHONPATH:/usr/src/
+# ENV PYTHONPATH=$PYTHONPATH:/usr/src/
 
 # Install ROS Noetic
 ENV DEBIAN_FRONTEND=noninteractive
@@ -42,6 +42,9 @@ RUN apt update && apt install -y ros-noetic-tf
 
 # Copy contents
 COPY . /usr/src/yolov3
+
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES graphics,utility,compute,display
 
 #entrypoint is always run at container startup
 COPY entrypoint.sh /root/

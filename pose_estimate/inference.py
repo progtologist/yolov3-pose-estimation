@@ -193,9 +193,12 @@ class Pose_estimation_rosnode():
         self.pub = rospy.Publisher('pose_estimation', PoseArray, queue_size=10)
         self.debug_counter = 0
         rospy.init_node('pose_estimation_hampus', anonymous=True)
-        rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image, callback=self.depth_callback)
-        rospy.Subscriber('/camera/color/image_raw', Image, callback=self.run_callback)
-        rospy.Subscriber('/camera/depth/color/points', PointCloud2, callback=self.points_callback)
+        #rospy.Subscriber('/camera/aligned_depth_to_color/image_raw', Image, callback=self.depth_callback)
+        #rospy.Subscriber('/camera/color/image_raw', Image, callback=self.run_callback)
+        #rospy.Subscriber('/camera/depth/color/points', PointCloud2, callback=self.points_callback)
+        rospy.Subscriber('/realsense/aligned_depth_to_color/image_raw', Image, callback=self.depth_callback)
+        rospy.Subscriber('/realsense/rgb/image_raw', Image, callback=self.run_callback)
+        rospy.Subscriber('/realsense/depth/points', PointCloud2, callback=self.points_callback)
 
         rospy.spin()
 
