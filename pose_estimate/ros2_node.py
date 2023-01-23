@@ -61,10 +61,10 @@ class PoseNode(Node):
                                                      self.image_callback, 10)
         elif transport == "compressed":
             self._rgb_sub = self.create_subscription(CompressedImage, "rgb/image_raw/compressed",
-                                                     self.image_callback, 10)
+                                                     self.compressed_image_callback, 10)
 
-        self._depth_sub = self.create_subscription(Image, "depth/image_raw",
-                                                   self.depth_callback, 10)
+        # self._depth_sub = self.create_subscription(Image, "depth/image_raw",
+        #                                            self.depth_callback, 10)
         self._points_sub = self.create_subscription(PointCloud2, "points2",
                                                     self.points_callback, 10)
 
