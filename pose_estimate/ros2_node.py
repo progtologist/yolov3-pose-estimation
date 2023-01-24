@@ -41,7 +41,7 @@ class PoseNode(Node):
                                         "custom",
                                         path=self.get_parameter("detector_weight_path").value,
                                         source="local")
-        self._detector.conf = self.get_parameter("detector_confidence")
+        self._detector.conf = self.get_parameter("detector_confidence").value
         # Load AutoEncoder
         self._device = torch.device("cuda:0")
         self._encoder = Encoder(self.get_parameter("encoder_weights").value).to(self._device)
